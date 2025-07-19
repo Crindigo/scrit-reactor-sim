@@ -1,7 +1,10 @@
 import math
 
+class Fluid(object):
+    temperature: float
 
 class CoolantStats(object):
+    hot_coolant: Fluid
     specific_heat_capacity: float
     moderator_factor: float
     cooling_factor: float
@@ -10,6 +13,15 @@ class CoolantStats(object):
     accumulates_hydrogen: bool
     mass: float
 
+COOLANTS = {}
+COOLANTS_INVERSE = {}
+
+def register_coolant(fluid: Fluid, coolant: CoolantStats):
+    COOLANTS[fluid] = coolant
+    COOLANTS_INVERSE[coolant] = fluid
+
+def original_fluid(coolant: CoolantStats) -> Fluid:
+    return COOLANTS_INVERSE[coolant]
 
 class FuelStats(object):
     max_temperature: float
@@ -118,6 +130,9 @@ class FuelRod(Component):
     def set_fuel(self, fuel: FuelStats) -> None:
         self._fuel = fuel
         self.max_temperature = fuel.max_temperature
+
+    def get_neutron_generation_time(self):
+        return self._fuel.neutron_generation_time
 
 
 class ControlRod(Component):
