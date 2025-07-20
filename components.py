@@ -2,8 +2,14 @@ import math
 
 class Fluid(object):
     temperature: float
+    name: str
+
+    def __init__(self, temperature: float, name: str):
+        self.temperature = temperature
+        self.name = name
 
 class CoolantStats(object):
+    fluid: Fluid
     hot_coolant: Fluid
     specific_heat_capacity: float
     moderator_factor: float
@@ -12,16 +18,11 @@ class CoolantStats(object):
     heat_of_vaporization: float
     accumulates_hydrogen: bool
     mass: float
-
-COOLANTS = {}
-COOLANTS_INVERSE = {}
-
-def register_coolant(fluid: Fluid, coolant: CoolantStats):
-    COOLANTS[fluid] = coolant
-    COOLANTS_INVERSE[coolant] = fluid
+    slow_absorption_factor: float
+    fast_absorption_factor: float
 
 def original_fluid(coolant: CoolantStats) -> Fluid:
-    return COOLANTS_INVERSE[coolant]
+    return coolant.fluid
 
 class FuelStats(object):
     max_temperature: float
@@ -36,6 +37,10 @@ class FuelStats(object):
     released_heat_energy: float
     decay_rate: float
     id: str
+
+    def __init__(self):
+        self.fast_neutron_fission_cross_section = 0
+        self.fast_neutron_capture_cross_section = 0
 
     def get_neutron_generation_time_category(self) -> int:
         if self.neutron_generation_time > 2:
@@ -96,6 +101,8 @@ class CoolantChannel(Component):
         super().__init__(coolant.moderator_factor, max_temperature, thermal_conductivity, mass, True)
         self.coolant = coolant
         self.weight = 0
+        self.related_fuel_rod_pairs = 0
+        self.partial_coolant = 0
 
     @staticmethod
     def normalize_weights(effective_channels: list["CoolantChannel"]) -> None:
@@ -143,6 +150,7 @@ class ControlRod(Component):
     def __init__(self, max_temperature: float, tip_moderation: bool, thermal_conductivity: float, mass: float):
         super().__init__(0, max_temperature, thermal_conductivity, mass, True)
         self.tip_moderation = tip_moderation
+        self.related_fuel_rod_pairs = 0
         self.weight = 0
 
     @staticmethod

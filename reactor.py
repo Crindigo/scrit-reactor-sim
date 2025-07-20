@@ -84,7 +84,12 @@ class FissionReactor(object):
     custom_regulation_logic: Optional[Callable[["FissionReactor"], float]] = None
 
     def __init__(self, size: int, depth: int, insertion: float):
-        self.reactor_layout = [[None] * size] * size
+        self.reactor_layout = []
+        for x in range(size):
+            self.reactor_layout.append([])
+            for y in range(size):
+                self.reactor_layout[x].append(None)
+
         self.reactor_depth = depth
         self.reactor_radius = float(size) / 2 + 1.5
         self.control_rod_insertion = max(0.001, insertion)
@@ -96,6 +101,14 @@ class FissionReactor(object):
         self.surface_area = (self.reactor_radius ** 2 * math.pi * 2 +
                              self.reactor_depth * self.reactor_radius * math.pi * 2)
         self.structural_mass = self.reactor_depth * self.reactor_radius ** 2 * math.pi * 300
+
+        self.coolant_mass = 0
+        self.fuel_mass = 0
+        self.neutron_flux = 0
+        self.neutron_poison_amount = 0
+        self.decay_products_amount = 0
+        self.power = 0
+        self.accumulated_hydrogen = 0
 
     def response_function_temperature(self, env_temp: float, current_temp: float, heat_added: float,
                                       heat_absorbed: float) -> float:
@@ -116,21 +129,22 @@ class FissionReactor(object):
         for i in range(len(self.reactor_layout)):
             for j in range(len(self.reactor_layout[i])):
                 comp = self.reactor_layout[i][j]
-                comp.set_pos(i, j)
-                self.max_temperature = min(self.max_temperature, comp.max_temperature)
-                self.structural_mass += comp.mass
-                if isinstance(comp, FuelRod):
-                    comp.index = id_rod
-                    self.fuel_rods.append(comp)
-                    id_rod += 1
-                elif isinstance(comp, ControlRod):
-                    comp.index = id_control
-                    self.control_rods.append(comp)
-                    id_control += 1
-                elif isinstance(comp, CoolantChannel):
-                    comp.index = id_channel
-                    self.coolant_channels.append(comp)
-                    id_channel += 1
+                if comp is not None:
+                    comp.set_pos(i, j)
+                    self.max_temperature = min(self.max_temperature, comp.max_temperature)
+                    self.structural_mass += comp.mass
+                    if isinstance(comp, FuelRod):
+                        comp.index = id_rod
+                        self.fuel_rods.append(comp)
+                        id_rod += 1
+                    elif isinstance(comp, ControlRod):
+                        comp.index = id_control
+                        self.control_rods.append(comp)
+                        id_control += 1
+                    elif isinstance(comp, CoolantChannel):
+                        comp.index = id_channel
+                        self.coolant_channels.append(comp)
+                        id_channel += 1
 
     def compute_k(self, add_to_effective_lists: bool, control_rods_inserted: bool):
         geometric_matrix_neutrons = [[0.0] * len(self.fuel_rods)] * len(self.fuel_rods)
@@ -156,14 +170,14 @@ class FissionReactor(object):
                     if component is None:
                         continue
 
-                    if component.moderation_factor > 0:
-                        mij += component.moderation_factor
-                        saij = (faij + saij) / 2
-
                     if (not component.same_position_as(self.fuel_rods[i])
                             and not component.same_position_as(self.fuel_rods[j])):
                         saij += component.get_absorption_factor(control_rods_inserted, True)
                         faij += component.get_absorption_factor(control_rods_inserted, False)
+
+                    if component.moderation_factor > 0:
+                        mij += component.moderation_factor
+                        saij = (faij + saij) / 2
 
                     if not add_to_effective_lists or (x == prev_x and y == prev_y):
                         continue

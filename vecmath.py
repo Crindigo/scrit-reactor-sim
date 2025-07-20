@@ -13,7 +13,7 @@ def linear_normalize(vector: list[float]) -> list[float]:
     return [v / vsum for v in vector]
 
 def multiply(matrix: list[list[float]], vector: list[float]) -> list[float]:
-    result = []
+    result = [0] * len(matrix)
     for i, row in enumerate(matrix):
         for j, col in enumerate(row):
             result[i] += col * vector[j]
