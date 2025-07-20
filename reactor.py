@@ -1,6 +1,5 @@
 # Fission Reactor class
 import math
-from os import MFD_ALLOW_SEALING
 
 import vecmath
 from vecmath import *
